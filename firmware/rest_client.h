@@ -2,7 +2,6 @@
 #define __HTTP_CLIENT_H_
 
 //#include "spark_wiring_string.h"
-//#include "spark_wiring_tcpclient.h"
 #include "ESP8266WiFi.h"
 //#include "spark_wiring_usbserial.h"
 

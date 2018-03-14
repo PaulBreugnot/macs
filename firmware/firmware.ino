@@ -66,16 +66,6 @@ void setup() {
        pinMode(i,INPUT_PULLUP);
     }
     pinMode(RELAY_PIN,OUTPUT);          // driver for the relay
-    pinMode(TAG_IN_RANGE_INPUT,INPUT);
-    
-    // antenna selection
-    pinMode(ANTENNA_PIN,INPUT_PULLUP);
-    
-    if(digitalRead(ANTENNA_PIN)==LOW){ // high == no jumper to pull it down 
-        WiFi.selectAntenna(ANT_EXTERNAL);
-    } else {
-        WiFi.selectAntenna(ANT_AUTO);
-    }
     
     // the db led is a weak and inverterted LED on the same pin as the update_input, this will set the pin to input_pullup anyway //
     pinMode(DB_LED_AND_UPDATE_PIN,INPUT_PULLUP);
