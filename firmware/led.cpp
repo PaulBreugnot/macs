@@ -1,5 +1,4 @@
 #include "stdint.h"
-#include "application.h"
 #include "config.h"
 
 LED::LED(uint8_t pin,uint16_t delay, uint8_t weak, uint8_t inverse){

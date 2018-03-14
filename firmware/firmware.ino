@@ -23,10 +23,8 @@
 */
 
 // This #include statement was automatically added by the Particle IDE.
-#include "application.h"
 #include "stdint.h"
 #include "config.h"
-#include "application.h"
 
 // network
 IPAddress HOSTNAME(192,168,188,23);

@@ -1,5 +1,4 @@
 
-#include "application.h"
 #include "stdint.h"
 #include "config.h"
 

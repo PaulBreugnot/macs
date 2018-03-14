@@ -2,7 +2,6 @@
 #ifndef AKTORS_H_
 #define AKTORS_H_
 
-#include "application.h"
 #include "log_backup.h"
 #include "stdint.h"
 #include "led.h"
