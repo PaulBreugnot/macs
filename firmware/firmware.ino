@@ -121,33 +121,28 @@ void goto_update_mode(){
         // the EEPROM memory AND that WIFI was in range AND the module has saved the login
         if(set_update_login(&green_led,&red_led)){
             Serial.println("set update login done");
-            Particle.connect();
             uint8_t i=0;
 
             // backup, if connect didn't work, repeat it
-            while(!WiFi.ready()){
+            while(!WiFi.status() == WL_IDLE_STATUS){
                 Serial.print(".");
-                Particle.connect();
             }
 
             // stay in update mode forever
-            while(WiFi.ready()){
+            while(WiFi.status() == WL_CONNECTED){
                 if(i!=millis()/1000){
                     
                     #ifdef DEBUG_JKW_MAIN
                     Serial1.print(i);
                     Serial1.print(": ");
                     #endif
-                    
-                    if(Particle.connected()){
+
                         // as soon as we are connected, swtich to blink mode to make it visible
                         if(!connected){
                             red_led.blink();
                             green_led.blink();
                             db_led.blink();
                             connected=1;
-                        } else {
-                            Particle.process();
                         }
                         
                         // check incomming data, unlikely here, because at this point we are already connected to an update wifi
@@ -161,18 +156,6 @@ void goto_update_mode(){
                         #ifdef DEBUG_JKW_MAIN
                         Serial1.println("Photon connected");
                         #endif
-                        
-                    } else {
-                        
-                        #ifdef DEBUG_JKW_MAIN
-                        Serial1.println("Photon NOT connected");
-                        #endif
-                        
-                        // constant on == not yet connected
-                        red_led.on();
-                        green_led.on();
-                        db_led.on();
-                    }
                     i=millis()/1000;
                 } // i!=millis()/1000
                 delay(200); // don't go to high as blink will look odd

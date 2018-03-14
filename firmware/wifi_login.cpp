@@ -120,9 +120,7 @@ bool set_login(LED *green, LED *red, uint8_t mode){
     FindSSID ssidFinder;
     uint8_t config;
 	
-	WiFi.off();
-    WiFi.on();
-    WiFi.clearCredentials();
+	WiFi.disconnect();
 	
 	// start with both LED's off
 	visual_indicator[0]->off();
@@ -173,7 +171,10 @@ bool set_login(LED *green, LED *red, uint8_t mode){
 				//try_backup=false;
                 //Serial.println("setting crededentials");
                 //Serial.println(SSID[0]);
-                WiFi.setCredentials(SSID, pw, type);
+                
+                //WiFi.begin(SSID, pw, type);
+                //TODO : set security type and key
+                WiFi.begin(SSID);
                 break;
             };
             delay(1000);
