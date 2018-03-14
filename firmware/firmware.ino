@@ -52,8 +52,6 @@ LED green_led(GREEN_LED_PIN,GREEN_LED_DELAY,0,0);
 
 BACKUP b; // report backup
 
-SYSTEM_MODE(MANUAL);// do not connect on your own
-
 // http server
 HttpClient http; // Headers currently need to be set at init, useful for API keys etc.
 http_header_t headers[] = {     { "Accept" , "*/*"},     { NULL, NULL } }; // NOTE: Always terminate headers will NULL
@@ -63,17 +61,12 @@ http_response_t response;
 
 //////////////////////////////// SETUP ////////////////////////////////
 void setup() {
-    FLASH_Lock();
     // set adress pins
     for(uint8_t i=10; i<=MAX_JUMPER_PIN+10; i++){   // A0..7 is 10..17, used to read my ID
        pinMode(i,INPUT_PULLUP);
     }
     pinMode(RELAY_PIN,OUTPUT);          // driver for the relay
     pinMode(TAG_IN_RANGE_INPUT,INPUT);
-    
-    // register system handles
-    System.on(wifi_listen, listen);
-    //System.on(network_status, listen);
     
     // antenna selection
     pinMode(ANTENNA_PIN,INPUT_PULLUP);
@@ -637,7 +630,6 @@ bool update_ids(bool forced){
     Serial1.println(KEY_CHECK_EEPROM_LOW);
     EEPROM.update(KEY_CHECK_EEPROM_HIGH,((keys_available+1)>>8)&0xff);
     EEPROM.update(KEY_CHECK_EEPROM_LOW,((keys_available+1))&0xff);
-    FLASH_Lock();
     
     #ifdef DEBUG_JKW_MAIN
     Serial1.print("Total received keys for my id(");

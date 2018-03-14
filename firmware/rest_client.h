@@ -3,6 +3,7 @@
 
 //#include "spark_wiring_string.h"
 //#include "spark_wiring_tcpclient.h"
+#include "ESP8266WiFi.h"
 //#include "spark_wiring_usbserial.h"
 
 /**
@@ -58,7 +59,7 @@ public:
     /**
     * Public references to variables.
     */
-    TCPClient client;
+    WiFiClient client;
     char buffer[1024];
 
     /**
