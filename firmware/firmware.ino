@@ -25,6 +25,7 @@
 // This #include statement was automatically added by the Particle IDE.
 #include "stdint.h"
 #include "config.h"
+#include <EEPROM.h>
 
 // network
 IPAddress HOSTNAME(192,168,188,23);
@@ -71,6 +72,7 @@ void setup() {
     pinMode(DB_LED_AND_UPDATE_PIN,INPUT_PULLUP);
     Serial.begin(115200);
     Serial1.begin(9600);
+    EEPROM.begin(512);
     
     // setup https client
     request.ip = HOSTNAME;
@@ -569,7 +571,6 @@ bool update_ids(bool forced){
         keys[i]=0;
     }
 
-    FLASH_Unlock();
     for(uint16_t i=0;i<response.body.length();i++){
         Serial.print(response.body.charAt(i));
 
@@ -578,13 +579,14 @@ bool update_ids(bool forced){
                 Serial1.print("write:");
                 Serial1.println(current_key*4+3);
                 // store to EEPROM
-                EEPROM.update(current_key*4+0, (keys[current_key]>>24)&0xff);
-                EEPROM.update(current_key*4+1, (keys[current_key]>>16)&0xff);
-                EEPROM.update(current_key*4+2, (keys[current_key]>>8)&0xff);
-                EEPROM.update(current_key*4+3, (keys[current_key])&0xff);
+                EEPROM.write(current_key*4+0, (keys[current_key]>>24)&0xff);
+                EEPROM.write(current_key*4+1, (keys[current_key]>>16)&0xff);
+                EEPROM.write(current_key*4+2, (keys[current_key]>>8)&0xff);
+                EEPROM.write(current_key*4+3, (keys[current_key])&0xff);
             
                 current_key++;
             }
+            EEPROM.commit();
         } else if(response.body.charAt(i)>='0' && response.body.charAt(i)<='9') { // zahl
             keys[current_key]=keys[current_key]*10+(response.body.charAt(i)-'0');
         }
@@ -596,13 +598,14 @@ bool update_ids(bool forced){
     Serial1.print("write:");
     Serial1.println(KEY_NUM_EEPROM_LOW);
     
-    EEPROM.update(KEY_NUM_EEPROM_HIGH,(keys_available>>8)&0xff);
-    EEPROM.update(KEY_NUM_EEPROM_LOW,(keys_available)&0xff);
+    EEPROM.write(KEY_NUM_EEPROM_HIGH,(keys_available>>8)&0xff);
+    EEPROM.write(KEY_NUM_EEPROM_LOW,(keys_available)&0xff);
     // checksum
     Serial1.print("write:");
     Serial1.println(KEY_CHECK_EEPROM_LOW);
-    EEPROM.update(KEY_CHECK_EEPROM_HIGH,((keys_available+1)>>8)&0xff);
-    EEPROM.update(KEY_CHECK_EEPROM_LOW,((keys_available+1))&0xff);
+    EEPROM.write(KEY_CHECK_EEPROM_HIGH,((keys_available+1)>>8)&0xff);
+    EEPROM.write(KEY_CHECK_EEPROM_LOW,((keys_available+1))&0xff);
+    EEPROM.commit();
     
     #ifdef DEBUG_JKW_MAIN
     Serial1.print("Total received keys for my id(");
