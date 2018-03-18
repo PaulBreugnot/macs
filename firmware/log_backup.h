@@ -1,3 +1,4 @@
+#include "stdint.h"
 #include "config.h"
 #define BACKUP_MAX 50
 

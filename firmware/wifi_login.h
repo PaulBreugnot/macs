@@ -1,4 +1,6 @@
 #include "config.h"
+#include "Arduino.h"
+#include "stdint.h"
 
 bool set_update_login(LED *green, LED *red);
 bool set_macs_login(LED *green, LED *red);

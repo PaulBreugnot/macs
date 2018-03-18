@@ -25,7 +25,7 @@
 // This #include statement was automatically added by the Particle IDE.
 #include "stdint.h"
 #include "config.h"
-#include <EEPROM.h>
+#include "EEPROM.h"
 
 // network
 IPAddress HOSTNAME(192,168,188,23);
@@ -126,7 +126,7 @@ void goto_update_mode(){
             uint8_t i=0;
 
             // backup, if connect didn't work, repeat it
-            while(!WiFi.status() == WL_IDLE_STATUS){
+            while(WiFi.status() == WL_IDLE_STATUS){
                 Serial.print(".");
             }
 
