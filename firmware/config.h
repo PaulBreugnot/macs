@@ -12,13 +12,13 @@
 
 #define MAX_JUMPER_PIN 6 // 2^(6+1)-1=127
 
-#define DB_LED_AND_UPDATE_PIN   D0
+#define DB_LED_AND_UPDATE_PIN   0
 #define RST_PIN                 5
 #define SS_PIN                  4
 #define RELAY_PIN               D3
-#define RED_LED_PIN             D4
+#define RED_LED_PIN             2
 #define READ_BACK_PIN           D5
-#define GREEN_LED_PIN           D6
+#define GREEN_LED_PIN           16
 
 // storage design:  valid adresses are 0-2047
 // [0..3] key 1
@@ -70,11 +70,11 @@
 #define LOG_NOTHING             4
 
 // debug
-//#define DEBUG_JKW 1
-//#define DEBUG_JKW_MAIN 1
-//#define LOGGING // rest client
-//#define DEBUG_JKW_LED 1
-//#define DEBUG_JKW_WIFI  1
+#define DEBUG_JKW 1
+#define DEBUG_JKW_MAIN 1
+#define LOGGING // rest client
+#define DEBUG_JKW_LED 1
+#define DEBUG_JKW_WIFI  1
 
 // settings
 #define DB_UPDATE_TIME          10*60 // seconds between two auto updates from the server

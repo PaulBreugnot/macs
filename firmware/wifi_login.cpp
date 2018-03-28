@@ -229,7 +229,7 @@ bool is_wifi_connected() {
 
 // read data from EEPROM, check them and set them if the check is passed
 bool get_wifi_config(uint8_t id, String *_SSID, String *_pw, int *_type) {
-  Serial1.println("get wifi config!!");
+  Serial.println("get wifi config!!");
   uint16_t data_start = 0;
   if (id == WIFI_MACS) {
     data_start = START_WIFI_MACS;
@@ -288,7 +288,7 @@ bool get_wifi_config(uint8_t id, String *_SSID, String *_pw, int *_type) {
     //#ifdef DEBUG_JKW_WIFI
     //Serial.println("invalid wifi data FF");
     //#endif
-    Serial1.println("invalid wifi data FF");
+    Serial.println("invalid wifi data FF");
     //return false;
 
     memset(SSID, 0x00, 21);
@@ -331,22 +331,22 @@ bool get_wifi_config(uint8_t id, String *_SSID, String *_pw, int *_type) {
   //Serial.println(".");
   //delay(1000);
   //#endif
-  Serial1.println("set wifi, data:");
-  Serial1.print("SSID:");
-  Serial1.print((const char*)SSID);
-  Serial1.println(".");
+  Serial.println("set wifi, data:");
+  Serial.print("SSID:");
+  Serial.print((const char*)SSID);
+  Serial.println(".");
   delay(1000);
-  Serial1.print("PW:");
-  Serial1.print((const char*)pw);
-  Serial1.println(".");
+  Serial.print("PW:");
+  Serial.print((const char*)pw);
+  Serial.println(".");
   delay(1000);
-  Serial1.print("type:");
-  Serial1.print(type + '0');
-  Serial1.println(".");
+  Serial.print("type:");
+  Serial.print(type + '0');
+  Serial.println(".");
   delay(1000);
-  Serial1.print("chk:");
-  Serial1.print(chk);
-  Serial1.println(".");
+  Serial.print("chk:");
+  Serial.print(chk);
+  Serial.println(".");
   delay(1000);
 
   if (!check_wifi_config((const char*)SSID, (const char*)pw, type, chk)) {
@@ -354,7 +354,7 @@ bool get_wifi_config(uint8_t id, String *_SSID, String *_pw, int *_type) {
     //#ifdef DEBUG_JKW_WIFI
     //Serial.println("set wifi, data invalid");
     //#endif
-    Serial1.println("set wifi, data invalid");
+    Serial.println("set wifi, data invalid");
     *_SSID = "";
     *_pw = "";
     *_type = 0;
@@ -416,7 +416,7 @@ bool save_wifi_config(uint8_t id, String SSID, String pw, uint8_t type, uint8_t 
   Serial.println(".");
   delay(1000);
 #endif
-  Serial1.println("set wifi config!!");
+  Serial.println("set wifi config!!");
 
   uint16_t data_start = 0;
   // set data start, EEPROM adress
@@ -469,7 +469,7 @@ bool save_wifi_config(uint8_t id, String SSID, String pw, uint8_t type, uint8_t 
   // checksum
   EEPROM.write(data_start + 41, chk);
 
-  Serial1.println("done!!");
+  Serial.println("done!!");
   return true;
 }
 

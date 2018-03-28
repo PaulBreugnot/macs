@@ -20,9 +20,9 @@ void HttpClient::sendHeader(const char* aHeaderName, const char* aHeaderValue)
     client.println(aHeaderValue);
 
     #ifdef LOGGING
-    Serial1.print(aHeaderName);
-    Serial1.print(": ");
-    Serial1.println(aHeaderValue);
+    Serial.print(aHeaderName);
+    Serial.print(": ");
+    Serial.println(aHeaderValue);
     #endif
 }
 
@@ -33,9 +33,9 @@ void HttpClient::sendHeader(const char* aHeaderName, const int aHeaderValue)
     client.println(aHeaderValue);
 
     #ifdef LOGGING
-    Serial1.print(aHeaderName);
-    Serial1.print(": ");
-    Serial1.println(aHeaderValue);
+    Serial.print(aHeaderName);
+    Serial.print(": ");
+    Serial.println(aHeaderValue);
     #endif
 }
 
@@ -44,7 +44,7 @@ void HttpClient::sendHeader(const char* aHeaderName)
     client.println(aHeaderName);
 
     #ifdef LOGGING
-    Serial1.println(aHeaderName);
+    Serial.println(aHeaderName);
     #endif
 }
 
@@ -63,16 +63,16 @@ void HttpClient::request(http_request_t &aRequest, http_response_t &aResponse, h
     // to ensure all fields are zero
     bool connected = false;
     if(aRequest.hostname!=NULL) {
-        Serial1.print("HttpClient>\tConnecting to: ");
-        Serial1.print(aRequest.hostname);
+        Serial.print("HttpClient>\tConnecting to: ");
+        Serial.print(aRequest.hostname);
             
         connected = client.connect(aRequest.hostname.c_str(), (aRequest.port) ? aRequest.port : 80 );
     }   else {
         
-        Serial1.print("HttpClient>\tConnecting to ip: ");
-        Serial1.print(aRequest.ip);
-        Serial1.print(" port ");
-        Serial1.println(aRequest.port);
+        Serial.print("HttpClient>\tConnecting to ip: ");
+        Serial.print(aRequest.ip);
+        Serial.print(" port ");
+        Serial.println(aRequest.port);
             
         connected = client.connect(aRequest.ip, aRequest.port);
     }
@@ -80,16 +80,16 @@ void HttpClient::request(http_request_t &aRequest, http_response_t &aResponse, h
     #ifdef LOGGING
     if (connected) {
         if(aRequest.hostname!=NULL) {
-            Serial1.print("HttpClient>\tConnecting to: ");
-            Serial1.print(aRequest.hostname);
+            Serial.print("HttpClient>\tConnecting to: ");
+            Serial.print(aRequest.hostname);
         } else {
-            Serial1.print("HttpClient>\tConnecting to IP: ");
-            Serial1.print(aRequest.ip);
+            Serial.print("HttpClient>\tConnecting to IP: ");
+            Serial.print(aRequest.ip);
         }
-        Serial1.print(":");
-        Serial1.println(aRequest.port);
+        Serial.print(":");
+        Serial.println(aRequest.port);
     } else {
-        Serial1.println("HttpClient>\tConnection failed.");
+        Serial.println("HttpClient>\tConnection failed.");
     }
     #endif
 
@@ -110,11 +110,11 @@ void HttpClient::request(http_request_t &aRequest, http_response_t &aResponse, h
     client.print(" HTTP/1.0\r\n");
 
     #ifdef LOGGING
-    Serial1.println("HttpClient>\tStart of HTTP Request.");
-    Serial1.print(aHttpMethod);
-    Serial1.print(" ");
-    Serial1.print(aRequest.path);
-    Serial1.print(" HTTP/1.0\r\n");
+    Serial.println("HttpClient>\tStart of HTTP Request.");
+    Serial.print(aHttpMethod);
+    Serial.print(" ");
+    Serial.print(aRequest.path);
+    Serial.print(" HTTP/1.0\r\n");
     #endif
 
     // Send General and Request Headers.
@@ -158,12 +158,12 @@ void HttpClient::request(http_request_t &aRequest, http_response_t &aResponse, h
         client.println(aRequest.body);
 
         #ifdef LOGGING
-        Serial1.println(aRequest.body);
+        Serial.println(aRequest.body);
         #endif
     }
 
     #ifdef LOGGING
-    Serial1.println("HttpClient>\tEnd of HTTP Request.");
+    Serial.println("HttpClient>\tEnd of HTTP Request.");
     #endif
 
     // clear response buffer
@@ -190,16 +190,16 @@ void HttpClient::request(http_request_t &aRequest, http_response_t &aResponse, h
         #ifdef LOGGING
         int bytes = client.available();
         if(bytes) {
-            Serial1.print("\r\nHttpClient>\tReceiving TCP transaction of ");
-            Serial1.print(bytes);
-            Serial1.println(" bytes.");
+            Serial.print("\r\nHttpClient>\tReceiving TCP transaction of ");
+            Serial.print(bytes);
+            Serial.println(" bytes.");
         }
         #endif
 
         while (client.available()) {
             char c = client.read();
             #ifdef LOGGING
-            Serial1.print(c);
+            Serial.print(c);
             #endif
             lastRead = millis();
 
@@ -207,7 +207,7 @@ void HttpClient::request(http_request_t &aRequest, http_response_t &aResponse, h
                 error = true;
 
                 #ifdef LOGGING
-                Serial1.println("HttpClient>\tError: No data available.");
+                Serial.println("HttpClient>\tError: No data available.");
                 #endif
 
                 break;
@@ -222,7 +222,7 @@ void HttpClient::request(http_request_t &aRequest, http_response_t &aResponse, h
                 error = true;
 
                 #ifdef LOGGING
-                Serial1.println("HttpClient>\tError: Response body larger than buffer.");
+                Serial.println("HttpClient>\tError: Response body larger than buffer.");
                 #endif
             }
             bufferPosition++;
@@ -231,7 +231,7 @@ void HttpClient::request(http_request_t &aRequest, http_response_t &aResponse, h
 
         #ifdef LOGGING
         if (bytes) {
-            Serial1.print("\r\nHttpClient>\tEnd of TCP transaction.");
+            Serial.print("\r\nHttpClient>\tEnd of TCP transaction.");
         }
         #endif
 
@@ -247,11 +247,11 @@ void HttpClient::request(http_request_t &aRequest, http_response_t &aResponse, h
 
     #ifdef LOGGING
     if (timeout) {
-        Serial1.println("\r\nHttpClient>\tError: Timeout while reading response.");
+        Serial.println("\r\nHttpClient>\tError: Timeout while reading response.");
     }
-    Serial1.print("\r\nHttpClient>\tEnd of HTTP Response (");
-    Serial1.print(millis() - firstRead);
-    Serial1.println("ms).");
+    Serial.print("\r\nHttpClient>\tEnd of HTTP Response (");
+    Serial.print(millis() - firstRead);
+    Serial.println("ms).");
     #endif
     client.stop();
 
@@ -261,14 +261,14 @@ void HttpClient::request(http_request_t &aRequest, http_response_t &aResponse, h
     String statusCode = raw_response.substring(9,12);
 
     #ifdef LOGGING
-    Serial1.print("HttpClient>\tStatus Code: ");
-    Serial1.println(statusCode);
+    Serial.print("HttpClient>\tStatus Code: ");
+    Serial.println(statusCode);
     #endif
 
     int bodyPos = raw_response.indexOf("\r\n\r\n");
     if (bodyPos == -1) {
         #ifdef LOGGING
-        Serial1.println("HttpClient>\tError: Can't find HTTP response body.");
+        Serial.println("HttpClient>\tError: Can't find HTTP response body.");
         #endif
 
         return;
