@@ -44,15 +44,10 @@ boolean cardPresent = false;
 
 uint8_t current_relay_state = RELAY_DISCONNECTED;
 uint8_t id = -1; //255, my own id
-uint8_t tagInRange = 0;
 uint32_t last_key_update = 0;
 uint32_t last_server_request = 0;
 uint32_t relay_open_timestamp = 0;
 uint32_t last_tag_read = 0;
-
-LED db_led(DB_LED_AND_UPDATE_PIN, DB_LED_DELAY, 1, 1); // weak + inverse
-LED red_led(RED_LED_PIN, RED_LED_DELAY, 0, 0);
-LED green_led(GREEN_LED_PIN, GREEN_LED_DELAY, 0, 0);
 
 BACKUP b; // report backup
 
@@ -74,8 +69,6 @@ void setup() {
   //}
   pinMode(RELAY_PIN, OUTPUT);         // driver for the relay
 
-  // the db led is a weak and inverterted LED on the same pin as the update_input, this will set the pin to input_pullup anyway //
-  pinMode(DB_LED_AND_UPDATE_PIN, INPUT_PULLUP);
   Serial.begin(9600);
   EEPROM.begin(512);
   SPI.begin();        // Init SPI bus
@@ -87,15 +80,12 @@ void setup() {
 
 
   // read mode to starting with
-  if (digitalRead(DB_LED_AND_UPDATE_PIN)) {
+  if (true) {
 
     // ############ MACS MODUS ############ //
 #ifdef DEBUG_JKW_MAIN
     Serial.println("- MACS -");
 #endif
-
-    //red_led.on();
-    //green_led.on();
 
     set_connected(0); // init as not connected
     /*if (update_ids(true)) { // true = force update, update_ids will initiate the connect
@@ -118,9 +108,6 @@ void setup() {
 // ############ UPDATE MODUS ############ //
 void goto_update_mode() {
   connected = 0;
-  red_led.on();
-  green_led.on();
-  db_led.on();
   Serial.println("goto_update_mode");
 #ifdef DEBUG_JKW_MAIN
   Serial.println("- Cloud -");
@@ -131,7 +118,7 @@ void goto_update_mode() {
   while (1) {
     // set_update_login will return true, if we've read a valid config from
     // the EEPROM memory AND that WIFI was in range AND the module has saved the login
-    if (set_update_login(&green_led, &red_led)) {
+    if (set_update_login()) {
       Serial.println("set update login done");
       uint8_t i = 0;
 
@@ -151,19 +138,11 @@ void goto_update_mode() {
 
           // as soon as we are connected, swtich to blink mode to make it visible
           if (!connected) {
-            red_led.blink();
-            green_led.blink();
-            db_led.blink();
             connected = 1;
           }
 
           // check incomming data, unlikely here, because at this point we are already connected to an update wifi
           parse_wifi();
-
-          // keep blinking
-          red_led.check();
-          green_led.check();
-          db_led.check();
 
 #ifdef DEBUG_JKW_MAIN
           Serial.println("Photon connected");
@@ -207,7 +186,6 @@ void loop() {
         // 4. assuming that we are connected, we reached this point then create_report will not try to reconnect, but the report failed, create_report will set us to not conneted
         // the red will be blinkin (ok), we want to show that this card was good, turn green on
         set_connected(connected, 1); // force to resume LED pattern
-        green_led.on();
       } else {
         // if we have a card that is not known to be valid we should maybe check our database
         if (tries > 1) {
@@ -235,7 +213,6 @@ void loop() {
           tries = 0;
           // takes long
           //create_report(LOG_LOGIN_REJECTED, currentTag, 0); //Not used for now
-          red_led.on();
         }
       }
     }
@@ -247,7 +224,6 @@ void loop() {
     // open the relay as soon as the tag is gone
     if (current_relay_state == RELAY_CONNECTED) {
       uint32_t open_time_sec = relay(RELAY_DISCONNECTED);
-      green_led.resume();
       // last because it takes long
       //create_report(LOG_RELAY_DISCONNECTED, currentTag, open_time_sec); //Not used for now
     } /*else {
@@ -265,12 +241,7 @@ void loop() {
   if (last_key_update + DB_UPDATE_TIME < (millis() / 1000)) {
     //update_ids(false);  // unforced upate //Not used for now
   }
-
-
-  // see if we should switch off the leds by now
-  db_led.check();
-  red_led.check();
-  green_led.check();
+  
   //parse_wifi(); //Not used for now
  }
 //////////////////////////////// MAIN LOOP ////////////////////////////////
@@ -504,14 +475,13 @@ bool update_ids(bool forced) {
     Serial.println("no ping");
 #endif
 
-    if (!set_macs_login(&green_led, &red_led)) {
+    if (!set_macs_login()) {
       set_connected(0, true);
       return false;
     }
   }
 
   last_key_update = millis() / 1000;
-  db_led.on(); // turn the led on
 
   // request data
   uint32_t now = millis();
@@ -522,16 +492,9 @@ bool update_ids(bool forced) {
     request.path = request.path + "0";
   }
 
-
-  green_led.on();
-  red_led.on();
-
-
   // Get request
   http.get(request, response, headers);
   int statusCode = response.status;
-  green_led.resume();
-  red_led.resume();
 
 #ifdef DEBUG_JKW_MAIN
   Serial.print("db request took ");
@@ -548,7 +511,6 @@ bool update_ids(bool forced) {
 
   // check status
   if (statusCode != 200) {
-    db_led.off(); // turn the led off
     set_connected(0);
 
 #ifdef DEBUG_JKW_MAIN
@@ -562,7 +524,6 @@ bool update_ids(bool forced) {
 
   // check length
   if (response.body.length() == 0) {
-    db_led.off(); // turn the led off
 
 #ifdef DEBUG_JKW_MAIN
     Serial.println("Empty response");
@@ -588,7 +549,6 @@ bool update_ids(bool forced) {
       Serial.println("No update received");
 #endif
       b.try_fire();
-      db_led.off(); // turn the led off
       return true;
     }
   }
@@ -651,7 +611,6 @@ bool update_ids(bool forced) {
 #endif
 
   b.try_fire(); // try to submit old reports
-  db_led.off(); // turn the led off
   return true;
 }
 //////////////////////////////// UPDATE ID's ////////////////////////////////
@@ -675,7 +634,7 @@ bool fire_report(uint8_t event, uint32_t badge, uint32_t extrainfo) {
     Serial.println("no ping");
 #endif
 
-    if (set_macs_login(&green_led, &red_led)) {
+    if (set_macs_login()) {
       set_connected(1); // this could potentially destroy our LED pattern? TODO
     } else {
       set_connected(0);
@@ -683,7 +642,6 @@ bool fire_report(uint8_t event, uint32_t badge, uint32_t extrainfo) {
     }
   }
 
-  db_led.on(); // turn the led on
   if (event == LOG_RELAY_CONNECTED) {
     request.path = "/history.php?logme&badge=" + String(badge) + "&mach_nr=" + String(get_my_id()) + "&event=Unlocked";
   } else if (event == LOG_LOGIN_REJECTED) {
@@ -703,13 +661,8 @@ bool fire_report(uint8_t event, uint32_t badge, uint32_t extrainfo) {
 
   uint32_t now = millis();
 
-  green_led.on();
-  red_led.on();
   http.get(request, response, headers);
   int statusCode = response.status;
-  green_led.resume();
-  red_led.resume();
-
 
   if (statusCode == 200) {
     set_connected(1);
@@ -723,8 +676,6 @@ bool fire_report(uint8_t event, uint32_t badge, uint32_t extrainfo) {
   Serial.print(millis() - now);
   Serial.println(" ms");
 #endif
-
-  db_led.off(); // turn the led off
   return ret;
 }
 //////////////////////////////// CREATE REPORT ////////////////////////////////
@@ -738,12 +689,8 @@ void set_connected(int status) {
 void set_connected(int status, bool force) {
   if (status == 1 && (connected == 0 || force)) {
     connected = 1;
-    green_led.blink();
-    red_led.off();
   } else if (status == 0 && (connected == 1 || force)) {
     connected = 0;
-    green_led.off();
-    red_led.blink();
   }
 }
 

@@ -12,13 +12,10 @@
 
 #define MAX_JUMPER_PIN 6 // 2^(6+1)-1=127
 
-#define DB_LED_AND_UPDATE_PIN   0
 #define RST_PIN                 5
 #define SS_PIN                  4
 #define RELAY_PIN               D3
-#define RED_LED_PIN             2
 #define READ_BACK_PIN           D5
-#define GREEN_LED_PIN           16
 
 // storage design:  valid adresses are 0-2047
 // [0..3] key 1
