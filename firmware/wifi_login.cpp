@@ -7,14 +7,12 @@ class FindSSID
 {
     char *SSID_to_search;
     bool found;
-    LED *m_green;
-    LED *m_red;
 
   public:
     /**
        Scan WiFi Access Points and retrieve the strongest one.
     */
-    bool check_SSID_in_range(char *SSID, LED *green, LED *red)
+    bool check_SSID_in_range(char *SSID)
     {
 #ifdef DEBUG_JKW_WIFI
       //Serial.print("check SSID for ");
@@ -23,8 +21,6 @@ class FindSSID
       // initialize data
       found = false;
       SSID_to_search = SSID;
-      m_green = green;
-      m_red = red;
 
       // avoid scanning for invaid data
       if (strlen(SSID) == 0) {
@@ -33,8 +29,6 @@ class FindSSID
       
       byte numSSID = WiFi.scanNetworks();
       for (int thisNet = 0; thisNet < numSSID; thisNet++) {
-        m_green->toggle();
-        m_red->toggle();
         if (strcmp(WiFi.SSID(thisNet).c_str(), SSID_to_search) == 0) {
 #ifdef DEBUG_JKW_WIFI
         Serial.print("found ");
@@ -63,128 +57,79 @@ class FindSSID
 // 4.1. if this fails, try config 2 (backup)
 // 5. if we don't set any credentials: give the user 10 sec to add some wifis via serial
 // 6. assuming we've set credentials, we'll return true, otherwise false and come back in a second
-bool set_update_login(LED *green, LED *red) {
-  return set_login(green, red, UPDATE);
+bool set_update_login() {
+  return set_login(UPDATE);
 }
 
-bool set_macs_login(LED *green, LED *red) {
-  return set_login(green, red, !UPDATE);
+bool set_macs_login() {
+  return set_login(!UPDATE);
 }
 
-bool set_login(LED *green, LED *red, uint8_t mode) {
-  //	... ok ... complicated
+bool set_login(uint8_t mode) {
+  //  ... ok ... complicated
   //
-  //	if we have a blank device this will happen:
-  //	1. Both LEDs will toggle for 10sec (saving WiFi credentials (not applicable here) or waiting for input)
+  //  if we have a blank device this will happen:
+  //  1. Both LEDs will toggle for 10sec (saving WiFi credentials (not applicable here) or waiting for input)
   //
-  //	if we have a config that is OUT of reach:
-  //	1. (MACS=Both LEDs)/(UPDATE1=green LED)/(UPDATE2=red LED) will flash 3x (MACS=simultaneously) to show that the config has been read
-  //	2. Green off, red on will show the start of the WiFi scanning
-  //	3. per WiFi that has been found the green and red will toggle, just to show activity
-  // 	4. Both LEDs are switched off
-  //	5. Both LEDs will toggle for 10sec (saving WiFi credentials (not applicable here) or waiting for input) 20Hz
+  //  if we have a config that is OUT of reach:
+  //  1. (MACS=Both LEDs)/(UPDATE1=green LED)/(UPDATE2=red LED) will flash 3x (MACS=simultaneously) to show that the config has been read
+  //  2. Green off, red on will show the start of the WiFi scanning
+  //  3. per WiFi that has been found the green and red will toggle, just to show activity
+  //  4. Both LEDs are switched off
+  //  5. Both LEDs will toggle for 10sec (saving WiFi credentials (not applicable here) or waiting for input) 20Hz
   //
-  //	if we have a config that is IN reach:
-  //	1. (MACS=Both LEDs)/(UPDATE1=green LED)/(UPDATE2=red LED) will flash 3x (MACS=simultaneously) to show that the config has been read
-  //	2. Green off, red on will show the start of the WiFi scanning
-  //	3. per WiFi that has been found the green and red will toggle, just to show activity
-  // 	4. Both LEDs are switched off
-  //	5. (MACS=Both LEDs)/(UPDATE1=green LED)/(UPDATE2=red LED) will toggle 5x (WiFi found) 10Hz
-  //	6. Both LEDs will toggle for 10sec or until WiFi data are saved (saving WiFi credentials or waiting for input) 20Hz
-  //	7. (MACS=Both LEDs)/(UPDATE1=green LED)/(UPDATE2=red LED) will toggle 2x (WiFi connected) 10Hz
+  //  if we have a config that is IN reach:
+  //  1. (MACS=Both LEDs)/(UPDATE1=green LED)/(UPDATE2=red LED) will flash 3x (MACS=simultaneously) to show that the config has been read
+  //  2. Green off, red on will show the start of the WiFi scanning
+  //  3. per WiFi that has been found the green and red will toggle, just to show activity
+  //  4. Both LEDs are switched off
+  //  5. (MACS=Both LEDs)/(UPDATE1=green LED)/(UPDATE2=red LED) will toggle 5x (WiFi found) 10Hz
+  //  6. Both LEDs will toggle for 10sec or until WiFi data are saved (saving WiFi credentials or waiting for input) 20Hz
+  //  7. (MACS=Both LEDs)/(UPDATE1=green LED)/(UPDATE2=red LED) will toggle 2x (WiFi connected) 10Hz
   //
 
-  String pw;
-  String SSID;
+  char* SSID;
+  char* pw;
   int type;
-  char SSID_char[20];
   bool try_backup = true;
   uint8_t wifi_offset;
   uint8_t max_loop;
-  LED *visual_indicator[2] = {green, red};
   FindSSID ssidFinder;
   uint8_t config;
-  EEPROM.begin(512);
+  //EEPROM.begin(512);
 
   WiFi.disconnect();
-
-  // start with both LED's off
-  visual_indicator[0]->off();
-  visual_indicator[1]->off();
 
   // prepare loop
   if (mode == UPDATE) { // in update mode we'll try both configs, WIFI_UPDATE_1 and WIFI_UPDATE_2
     max_loop = 2;
     wifi_offset = WIFI_UPDATE_1;
-  } else {	// in macs mode we'll just try WIFI_MACS
+  } else {  // in macs mode we'll just try WIFI_MACS
     max_loop = 1;
     wifi_offset = WIFI_MACS;
   }
 
   for (config = 0; config < max_loop; config++) {
-    if (get_wifi_config(wifi_offset + config, &SSID, &pw, &type)) {
-      // flash 3x green/red to show that I've found a valid WLAN config in EEPROM
-      for (int i = 0; i < 2 * 3; i++) {
-        if (mode != UPDATE) {	// MACS mode, toggle both
-          visual_indicator[0]->toggle();
-          visual_indicator[1]->toggle();
-        } else {	// UPDATE mode, toggle just one
-          visual_indicator[config]->toggle();
-        }
-        delay(100);
-      }
+    //if (get_wifi_config(wifi_offset + config, &SSID, &pw, &type)) {
+    if (1) {
+      //Serial.println("SSID found in EEPROM");
       delay(1000);
 
-      // now switch to a configuration with one LED on, because well toggle both in the ssidFinder
-      visual_indicator[0]->off();
-      visual_indicator[1]->on();
-
-      SSID.toCharArray(SSID_char, 20);
-      if (ssidFinder.check_SSID_in_range(SSID_char, green, red)) {
-        // flash 5x green to show that I've found the WLAN and try to connect now
-        visual_indicator[0]->off();
-        visual_indicator[1]->off();
-        delay(1000);
-        for (int i = 0; i < 2 * 5; i++) {
-          if (mode != UPDATE) {	// MACS mode, toggle both
-            visual_indicator[0]->toggle();
-            visual_indicator[1]->toggle();
-          } else {	// UPDATE mode, toggle just one
-            visual_indicator[config]->toggle();
-          }
-          delay(100);
-        }
-        //try_backup=false;
-        //Serial.println("setting crededentials");
-        //Serial.println(SSID[0]);
-
-        //WiFi.begin(SSID, pw, type);
-        //TODO : set security type and key
-        WiFi.softAP(SSID_char); //for open network
+      if (ssidFinder.check_SSID_in_range(SSID)) {
+        Serial.println("Wifi Found");
         break;
       };
       delay(1000);
-      // end with both off, we should have a clean start if we have to loop
-      visual_indicator[0]->off();
-      visual_indicator[1]->off();
     };
   };
-
-  // start with both off, to show a pattern, different from scanning
-  visual_indicator[0]->off();
-  visual_indicator[1]->off();
   for (int i = 0; i < 200 && (WiFi.SSID().length() == 0); i++) {
     // take new info
     parse_wifi();
     // set info
     delay(50);
-    visual_indicator[0]->toggle();
-    visual_indicator[1]->toggle();
-  }
+    }
 
-  visual_indicator[0]->off();
-  visual_indicator[1]->off();
-  if (WiFi.SSID().length() > 0) {
+  if (SSID != "") {
     // set IP
     if (mode != UPDATE) {
       IPAddress myAddress(192, 168, 188, 100 + get_my_id());
@@ -195,30 +140,16 @@ bool set_login(LED *green, LED *red, uint8_t mode) {
     }
 
     // finally connect
-    WiFi.begin();
+
+    WiFi.begin(SSID, pw);
     int i = 0;
-    while (i < 200 && WiFi.status() == WL_IDLE_STATUS) {
+    while (i < 200 && WiFi.status() != WL_CONNECTED) {
       delay(50); // wait 59
       i++;
     }
 
-    //Serial.println("return true");
-    for (int i = 0; i < 2 * 2; i++) {
-      if (mode != UPDATE) {	// MACS mode, toggle both
-        visual_indicator[0]->toggle();
-        visual_indicator[1]->toggle();
-      } else {	// UPDATE mode, toggle just one
-        visual_indicator[config]->toggle();
-      }
-      delay(100);
-    }
-    visual_indicator[0]->off();
-    visual_indicator[1]->off();
     return true;
   }
-
-  visual_indicator[0]->off();
-  visual_indicator[1]->off();
   return false;
 }
 
