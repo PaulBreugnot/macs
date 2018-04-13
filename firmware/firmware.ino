@@ -70,7 +70,7 @@ void setup() {
   pinMode(RELAY_PIN, OUTPUT);         // driver for the relay
 
   Serial.begin(9600);
-  EEPROM.begin(512);
+  EEPROM.begin(EEPROM_MAX + 1);
   SPI.begin();        // Init SPI bus
   rfid.PCD_Init(); // Init MFRC522 card
 
@@ -223,6 +223,7 @@ void loop() {
   if (!cardPresent) {
     // open the relay as soon as the tag is gone
     if (current_relay_state == RELAY_CONNECTED) {
+      Serial.println("Disconecting relay.");
       uint32_t open_time_sec = relay(RELAY_DISCONNECTED);
       // last because it takes long
       //create_report(LOG_RELAY_DISCONNECTED, currentTag, open_time_sec); //Not used for now
@@ -319,13 +320,15 @@ uint32_t relay(int8_t input) {
 // returns true if tag found, does the UART handling
 bool checkCard(uint8_t *buf, uint32_t *tag) {
   boolean validTag;
+  
   //Return true if a new card has been read
   //Return false if no card or same card.
   boolean isNewCardPresent0 = rfid.PICC_IsNewCardPresent();
-  //Serial.print("Is new card present 0 : "); Serial.println(isNewCardPresent0);
-  // isNewCardPresent0 is true : it is sure that there is a new card.
+  
+  //if isNewCardPresent0 is true : it is sure that there is a new card.
   if (isNewCardPresent0) {
     validTag = readCard(buf, tag);
+    Serial.println("New card");
     return cardPresent && validTag;
   }
   else {
@@ -338,13 +341,13 @@ bool checkCard(uint8_t *buf, uint32_t *tag) {
     if (!cardPresent) {
       // Even if isNewCardPresent0 is false, there can be a new card
       boolean isNewCardPresent = rfid.PICC_IsNewCardPresent();
-      //Serial.print("Is new card present : "); Serial.println(isNewCardPresent);
       if ( ! isNewCardPresent) {
         cardPresent = false;
         return false;
       }
       else {
         validTag = readCard(buf, tag);
+        Serial.println("New card");
         return cardPresent && validTag;
       }
     }
@@ -354,13 +357,12 @@ bool checkCard(uint8_t *buf, uint32_t *tag) {
 
 boolean readCard(uint8_t *buf, uint32_t *tag) {
   boolean readCardSerial = rfid.PICC_ReadCardSerial();
-  //Serial.print("Read card serial : "); Serial.println(readCardSerial);
-  // Verify if the NUID has been readed
+  
+  // Verify if the UID has been readed
   if ( ! readCardSerial) {
     return false;
   }
   cardPresent = true;
-  // Store NUID into nuidPICC array
   for (byte i = 0; i < 4; i++) {
     buf[i] = rfid.uid.uidByte[i];
   }
@@ -373,6 +375,7 @@ boolean readCard(uint8_t *buf, uint32_t *tag) {
 // just check if the data are corrumpeted or equal the checksum
 // and convert them to the correct oriented unsigned long
 bool validate_tag(uint8_t *buf, uint32_t *tag) {
+  /*Serial.println("Validating tag...");
   uint8_t expected = 0;
   for (uint8_t i = 0; i < TAGSTRINGSIZE - 1; i++) {
     expected ^= buf[i];
@@ -383,10 +386,17 @@ bool validate_tag(uint8_t *buf, uint32_t *tag) {
     for (uint8_t i = 0; i < TAGSTRINGSIZE - 1; i++) {
       *tag = (*tag << 8) + buf[i];
     };
+    Serial.println("Valid tag.");
     return true;
   }
+  Serial.println("Wrong tag.");
+  return false;*/
 
-  return false;
+  //For now :
+  for (uint8_t i = 0; i < TAGSTRINGSIZE ; i++) {
+      *tag = (*tag << 8) + buf[i];
+  };
+  return true;
 }
 //////////////////////////////// VERIFY CHECKSUM FOR TAG ////////////////////////////////
 

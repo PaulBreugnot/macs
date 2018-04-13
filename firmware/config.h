@@ -12,9 +12,9 @@
 
 #define MAX_JUMPER_PIN 6 // 2^(6+1)-1=127
 
-#define RST_PIN                 5
-#define SS_PIN                  4
-#define RELAY_PIN               D3
+#define RST_PIN                 16
+#define SS_PIN                  5
+#define RELAY_PIN               4
 #define READ_BACK_PIN           D5
 
 // storage design:  valid adresses are 0-2047
@@ -43,7 +43,7 @@
 // [2046,2047] key number check (key number+1) 
 
 #define MAX_KEYS                478 // max number of keys, total nr +1 = 479
-#define TAGSTRINGSIZE           5 // tag length
+#define TAGSTRINGSIZE           4 // tag length
 #define EEPROM_MAX              2047 // hw limit
 #define START_WIFI_MACS         1918
 #define START_WIFI_UPDATE_1     1960

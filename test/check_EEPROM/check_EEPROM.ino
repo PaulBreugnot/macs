@@ -1,6 +1,6 @@
 #include "EEPROM.h"
 
-#define MAX_KEYS 504 // max number of keys, total nr +1 = 479
+#define MAX_KEYS 478 // max number of keys, total nr +1 = 479
 #define KEY_NUM_EEPROM_HIGH     KEY_NUM_EEPROM_LOW-1
 #define KEY_NUM_EEPROM_LOW      KEY_CHECK_EEPROM_HIGH-1
 #define KEY_CHECK_EEPROM_HIGH   KEY_CHECK_EEPROM_LOW-1

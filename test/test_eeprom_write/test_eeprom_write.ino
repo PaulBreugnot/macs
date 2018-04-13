@@ -18,7 +18,7 @@
   uint16_t num_keys = 0;
   uint16_t num_keys_check = 0;
 int addr;
-uint32_t tagToWrite = 0x1111;
+uint32_t tagToWrite = 0x1A44FD90;
 
 void setup() {
   Serial.begin(9600);
