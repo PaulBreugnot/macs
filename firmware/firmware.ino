@@ -22,7 +22,6 @@
   green solid -> card accepted
 */
 
-// This #include statement was automatically added by the Particle IDE.
 #include "stdint.h"
 #include "config.h"
 #include "EEPROM.h"
@@ -61,6 +60,10 @@ http_response_t response;
 
 MFRC522 rfid(SS_PIN, RST_PIN);   // Create MFRC522 instance.
 
+// LEDs
+LED green_led(GREEN_LED);
+LED red_led(RED_LED);
+
 //////////////////////////////// SETUP ////////////////////////////////
 void setup() {
   // set adress pins
@@ -71,16 +74,13 @@ void setup() {
 
   Serial.begin(9600);
   EEPROM.begin(EEPROM_MAX + 1);
-  SPI.begin();        // Init SPI bus
+  SPI.begin(); // Init SPI bus
   rfid.PCD_Init(); // Init MFRC522 card
+  //rfid.PCD_SetAntennaGain(0x07 << 4 );
 
   // setup https client
   request.ip = HOSTNAME;
   request.port = HOSTPORT;
-
-
-  // read mode to starting with
-  if (true) {
 
     // ############ MACS MODUS ############ //
 #ifdef DEBUG_JKW_MAIN
@@ -97,75 +97,15 @@ void setup() {
     //For now, we only initialize keys from EEPROM
     read_EEPROM();
     // ############ MACS MODUS ############ //
-
-  } else {
-    //Not used for now
-    //goto_update_mode();
-  }
 }
 //////////////////////////////// SETUP ////////////////////////////////
 
-// ############ UPDATE MODUS ############ //
-void goto_update_mode() {
-  connected = 0;
-  Serial.println("goto_update_mode");
-#ifdef DEBUG_JKW_MAIN
-  Serial.println("- Cloud -");
-#endif
-
-  // satrt loop that will set wifi data and connect to cloud,
-  // and if anything fails start again, until there is an update
-  while (1) {
-    // set_update_login will return true, if we've read a valid config from
-    // the EEPROM memory AND that WIFI was in range AND the module has saved the login
-    if (set_update_login()) {
-      Serial.println("set update login done");
-      uint8_t i = 0;
-
-      // backup, if connect didn't work, repeat it
-      while (WiFi.status() == WL_IDLE_STATUS) {
-        Serial.print(".");
-      }
-
-      // stay in update mode forever
-      while (WiFi.status() == WL_CONNECTED) {
-        if (i != millis() / 1000) {
-
-#ifdef DEBUG_JKW_MAIN
-          Serial.print(i);
-          Serial.print(": ");
-#endif
-
-          // as soon as we are connected, swtich to blink mode to make it visible
-          if (!connected) {
-            connected = 1;
-          }
-
-          // check incomming data, unlikely here, because at this point we are already connected to an update wifi
-          parse_wifi();
-
-#ifdef DEBUG_JKW_MAIN
-          Serial.println("Photon connected");
-#endif
-          i = millis() / 1000;
-        } // i!=millis()/1000
-        delay(200); // don't go to high as blink will look odd
-      } // end while(WiFi.ready())
-      // reaching this point tells us that we've set the wifi login, tried to connect but lost the connection, as the wifi is not (longer) ready
-    } // if(set_update_login())
-  } // end while(1)
-  // ############ UPDATE MODUS ############ //
-}
-// ############ UPDATE MODUS ############ //
 
 //////////////////////////////// MAIN LOOP ////////////////////////////////
 // woop woop main loop
 void loop() {
   // check if we found a tag
   if (checkCard(currentTagBuf, &currentTag)) {
-    if (currentTag == UPDATECARD) {
-      goto_update_mode();
-    }
     // if we found a tag, test it
     // if it works close relay,
     // if not - ask the server for an update and try again
@@ -174,6 +114,7 @@ void loop() {
       // compares known keys, returns true if key is known
       if (access_test(currentTag)) {
         relay(RELAY_CONNECTED);
+        green_led.on();
         tries = 0;
         // takes long
         //create_report(LOG_RELAY_CONNECTED, currentTag, 0); //Not used for now
@@ -213,6 +154,7 @@ void loop() {
           tries = 0;
           // takes long
           //create_report(LOG_LOGIN_REJECTED, currentTag, 0); //Not used for now
+          red_led.on();
         }
       }
     }
@@ -223,13 +165,10 @@ void loop() {
   if (!cardPresent) {
     // open the relay as soon as the tag is gone
     if (current_relay_state == RELAY_CONNECTED) {
-      Serial.println("Disconecting relay.");
       uint32_t open_time_sec = relay(RELAY_DISCONNECTED);
       // last because it takes long
       //create_report(LOG_RELAY_DISCONNECTED, currentTag, open_time_sec); //Not used for now
-    } /*else {
-            red_led.resume();
-        } */
+    }
 
     set_connected(connected, 1); // force to resume LED pattern
 
@@ -334,6 +273,8 @@ bool checkCard(uint8_t *buf, uint32_t *tag) {
   else {
     // if isNewCardPresent0 is false AND the second call to rfid.PICC_IsNewCardPresent() is false : card has been removed
     if ( cardPresent && ! rfid.PICC_IsNewCardPresent()) {
+      green_led.off();
+      red_led.off();
       Serial.println("Card Removed");
       cardPresent = false;
       return false;
@@ -485,7 +426,7 @@ bool update_ids(bool forced) {
     Serial.println("no ping");
 #endif
 
-    if (!set_macs_login()) {
+    if (!set_wifi_login()) {
       set_connected(0, true);
       return false;
     }
@@ -644,7 +585,7 @@ bool fire_report(uint8_t event, uint32_t badge, uint32_t extrainfo) {
     Serial.println("no ping");
 #endif
 
-    if (set_macs_login()) {
+    if (set_wifi_login()) {
       set_connected(1); // this could potentially destroy our LED pattern? TODO
     } else {
       set_connected(0);

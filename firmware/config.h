@@ -14,7 +14,9 @@
 
 #define RST_PIN                 16
 #define SS_PIN                  5
-#define RELAY_PIN               4
+#define RELAY_PIN               0
+#define GREEN_LED               2
+#define RED_LED                 4
 #define READ_BACK_PIN           D5
 
 // storage design:  valid adresses are 0-2047
@@ -46,16 +48,16 @@
 #define TAGSTRINGSIZE           4 // tag length
 #define EEPROM_MAX              2047 // hw limit
 #define START_WIFI_MACS         1918
-#define START_WIFI_UPDATE_1     1960
-#define START_WIFI_UPDATE_2     2002
+//#define START_WIFI_UPDATE_1     1960
+//#define START_WIFI_UPDATE_2     2002
 #define KEY_NUM_EEPROM_HIGH     KEY_NUM_EEPROM_LOW-1
 #define KEY_NUM_EEPROM_LOW      KEY_CHECK_EEPROM_HIGH-1
 #define KEY_CHECK_EEPROM_HIGH   KEY_CHECK_EEPROM_LOW-1
 #define KEY_CHECK_EEPROM_LOW    EEPROM_MAX
-#define WIFI_MACS               0
-#define WIFI_UPDATE_1           1
-#define WIFI_UPDATE_2           2
-#define UPDATE                  1
+//#define WIFI_MACS               0
+//#define WIFI_UPDATE_1           1
+//#define WIFI_UPDATE_2           2
+//#define UPDATE                  1
 
 // macros
 #define RELAY_CONNECTED         1
