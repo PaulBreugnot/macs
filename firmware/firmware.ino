@@ -1,27 +1,3 @@
-/* LED Patter
-  === STARTUP ===
-  red,green,red,green  -> i give you 10 sec to connect to me, before I start
-  red on, green on -> I'm trying to connect to my server
-
-  === UPDATE MODE ===
-  green flashes 3 times (10Hz) -> I've found valid WiFi config 1 in EEPROM and now I'm scannning for it!
-  green flashes 5 times (10Hz) -> I've found WiFi config 1 in scan results and try to conenct now!
-  red flashes 3 times (10Hz) -> I've found valid WiFi config 2 in EEPROM and now I'm scannning for it!
-  red flashes 5 times (10Hz) -> I've found WiFi config 2 in scan results and try to conenct now!
-  red and green simulatnious, 2 fast blinks (10Hz) -> connected to wifi!
-  red,green,red,greed fast (10sec, 20Hz) -> Waiting for the Wifi to save credentials AND give you time to add new credentials via serial
-  red and green blink simultainous -> I'm ready for an update
-
-  === MACS MODE (status can be combined) ===
-  red and green simulatnious, flashes 3 times (10Hz) -> I've found valid WiFi config in EEPROM and now I'm scannning for it!
-  red and green simulatnious, flashes 5 times (10Hz) -> I've found WiFi config in scan results and try to conenct now!
-  red and green simulatnious, 2 fast flashes (10Hz)  -> connected to wifi!
-  red blinking -> no connection to the MACS Server
-  red solid -> card rejected
-  green blinking -> connected to the MACS Server
-  green solid -> card accepted
-*/
-
 #include "stdint.h"
 #include "config.h"
 #include "EEPROM.h"
@@ -87,7 +63,6 @@ void setup() {
     Serial.println("- MACS -");
 #endif
 
-    set_connected(0); // init as not connected
     /*if (update_ids(true)) { // true = force update, update_ids will initiate the connect
       set_connected(1);
     } else {
@@ -116,17 +91,6 @@ void loop() {
         relay(RELAY_CONNECTED);
         green_led.on();
         tries = 0;
-        // takes long
-        //create_report(LOG_RELAY_CONNECTED, currentTag, 0); //Not used for now
-        // 1. assuming that we are NOT connected, we reached this point and the create_report has success to reconnet than it will call set_connected()
-        // this will turn red off (which is fine (was blinking = not connected)) and green to blink (ok), so we have to override it
-        // 2. assuming that we are NOT connected, we reached this point and the create_report has NO success to reconnet than it will not call set_connected()
-        // the red will keep blinking (ok) but we still want to show that this card was good, turn green on
-        // 3. assuming that we are connected, we reached this point then create_report will not try to reconnect and the report is send just fine
-        // the red will be off anywa (ok), we want to show that this card was good, turn green on
-        // 4. assuming that we are connected, we reached this point then create_report will not try to reconnect, but the report failed, create_report will set us to not conneted
-        // the red will be blinkin (ok), we want to show that this card was good, turn green on
-        set_connected(connected, 1); // force to resume LED pattern
       } else {
         // if we have a card that is not known to be valid we should maybe check our database
         if (tries > 1) {
@@ -169,8 +133,6 @@ void loop() {
       // last because it takes long
       //create_report(LOG_RELAY_DISCONNECTED, currentTag, open_time_sec); //Not used for now
     }
-
-    set_connected(connected, 1); // force to resume LED pattern
 
     currentTag = -1;    // reset current user
     currentTagIndex = 0; // reset index counter for incoming bytes
@@ -427,7 +389,6 @@ bool update_ids(bool forced) {
 #endif
 
     if (!set_wifi_login()) {
-      set_connected(0, true);
       return false;
     }
   }
@@ -462,14 +423,10 @@ bool update_ids(bool forced) {
 
   // check status
   if (statusCode != 200) {
-    set_connected(0);
 
 #ifdef DEBUG_JKW_MAIN
     Serial.println("No response from server");
 #endif
-
-    Serial.println("No response from server");
-
     return false;
   }
 
@@ -480,9 +437,6 @@ bool update_ids(bool forced) {
     Serial.println("Empty response");
 #endif
   }
-
-  // connection looks good
-  set_connected(1, true); // force update LEDs as the reconnect might have overwritten the LED mode
 
   // check if we've received a "no update" message from the server
   // if we are unforced we'll just leave our EEPROM as is.
@@ -585,10 +539,7 @@ bool fire_report(uint8_t event, uint32_t badge, uint32_t extrainfo) {
     Serial.println("no ping");
 #endif
 
-    if (set_wifi_login()) {
-      set_connected(1); // this could potentially destroy our LED pattern? TODO
-    } else {
-      set_connected(0);
+    if (!set_wifi_login()) {
       return false; // pointless to go on
     }
   }
@@ -615,10 +566,7 @@ bool fire_report(uint8_t event, uint32_t badge, uint32_t extrainfo) {
   http.get(request, response, headers);
   int statusCode = response.status;
 
-  if (statusCode == 200) {
-    set_connected(1);
-  } else if (statusCode != 200) {
-    set_connected(0);
+if (statusCode != 200) {
     ret = false;
   }
 
@@ -630,22 +578,6 @@ bool fire_report(uint8_t event, uint32_t badge, uint32_t extrainfo) {
   return ret;
 }
 //////////////////////////////// CREATE REPORT ////////////////////////////////
-
-//////////////////////////////// SET CONNECTED ////////////////////////////////
-// set the LED pattern
-void set_connected(int status) {
-  set_connected(status, false);
-};
-
-void set_connected(int status, bool force) {
-  if (status == 1 && (connected == 0 || force)) {
-    connected = 1;
-  } else if (status == 0 && (connected == 1 || force)) {
-    connected = 0;
-  }
-}
-
-//////////////////////////////// SET CONNECTED ////////////////////////////////
 
 //////////////////////////////// GET MY ID ////////////////////////////////
 // shall later on read the device jumper and return that number
