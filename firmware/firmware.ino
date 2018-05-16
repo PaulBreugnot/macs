@@ -63,14 +63,10 @@ void setup() {
     Serial.println("- MACS -");
 #endif
 
-    /*if (update_ids(true)) { // true = force update, update_ids will initiate the connect
-      set_connected(1);
-    } else {
-      set_connected(0, true); // force LED update for not connected
+    if (!update_ids(true)) {
       read_EEPROM();
-    }*/
-    //For now, we only initialize keys from EEPROM
-    read_EEPROM();
+    }
+    
     // ############ MACS MODUS ############ //
 }
 //////////////////////////////// SETUP ////////////////////////////////
@@ -89,6 +85,7 @@ void loop() {
       // compares known keys, returns true if key is known
       if (access_test(currentTag)) {
         relay(RELAY_CONNECTED);
+        create_report(LOG_RELAY_CONNECTED,currentTag,0);
         green_led.on();
         tries = 0;
       } else {
@@ -99,7 +96,7 @@ void loop() {
           Serial.println("Key not valid, requesting update from server");
 #endif
           //Not used for now
-          //update_ids(false); // unforced update
+          update_ids(false); // unforced update
 
 
 #ifdef DEBUG_JKW_MAIN
@@ -117,7 +114,7 @@ void loop() {
 
           tries = 0;
           // takes long
-          //create_report(LOG_LOGIN_REJECTED, currentTag, 0); //Not used for now
+          create_report(LOG_LOGIN_REJECTED, currentTag, 0);
           red_led.on();
         }
       }
@@ -131,7 +128,7 @@ void loop() {
     if (current_relay_state == RELAY_CONNECTED) {
       uint32_t open_time_sec = relay(RELAY_DISCONNECTED);
       // last because it takes long
-      //create_report(LOG_RELAY_DISCONNECTED, currentTag, open_time_sec); //Not used for now
+      create_report(LOG_RELAY_DISCONNECTED, currentTag, open_time_sec);
     }
 
     currentTag = -1;    // reset current user
@@ -141,7 +138,7 @@ void loop() {
 
   // time based update the storage from the server (every 10 min?)
   if (last_key_update + DB_UPDATE_TIME < (millis() / 1000)) {
-    //update_ids(false);  // unforced upate //Not used for now
+    update_ids(false);  // unforced upate
   }
   
   //parse_wifi(); //Not used for now
@@ -385,11 +382,14 @@ bool update_ids(bool forced) {
   if (!is_wifi_connected()) {
 
 #ifdef DEBUG_JKW_MAIN
-    Serial.println("no ping");
+    Serial.println("WiFi disconnected. Try to connect...");
 #endif
 
     if (!set_wifi_login()) {
       return false;
+    }
+    if (!is_wifi_connected()){
+      return false ;
     }
   }
 
@@ -416,7 +416,7 @@ bool update_ids(bool forced) {
   Serial.println("Requested:");
   Serial.println(request.path);
   delay(1000);
-  Serial.println("Recevied:");
+  Serial.println("Received:");
   Serial.println(response.body);
 #endif
 
@@ -536,11 +536,14 @@ bool fire_report(uint8_t event, uint32_t badge, uint32_t extrainfo) {
   if (!is_wifi_connected()) {
 
 #ifdef DEBUG_JKW_MAIN
-    Serial.println("no ping");
+    Serial.println("WiFi disconnected.");
 #endif
 
     if (!set_wifi_login()) {
       return false; // pointless to go on
+    }
+    if (!is_wifi_connected()){
+      return false;
     }
   }
 

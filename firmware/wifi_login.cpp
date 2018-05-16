@@ -2,36 +2,37 @@
 #include "stdint.h"
 #include "config.h"
 #include "EEPROM.h"
+#include "ESP8266WiFi.h"
 
 class FindSSID
 {
-    char *SSID_to_search;
+    String SSID_to_search;
     bool found;
 
   public:
     /**
        Scan WiFi Access Points and retrieve the strongest one.
     */
-    bool check_SSID_in_range(char *SSID)
+    bool check_SSID_in_range(String SSID)
     {
 #ifdef DEBUG_JKW_WIFI
-      //Serial.print("check SSID for ");
-      //Serial.println(SSID);
+      Serial.print("check SSID for ");
+      Serial.println(SSID);
 #endif
       // initialize data
       found = false;
       SSID_to_search = SSID;
 
       // avoid scanning for invaid data
-      if (strlen(SSID) == 0) {
+      if (SSID.length() == 0) {
         return false;
       }
-      
+
       byte numSSID = WiFi.scanNetworks();
       for (int thisNet = 0; thisNet < numSSID; thisNet++) {
-        if (strcmp(WiFi.SSID(thisNet).c_str(), SSID_to_search) == 0) {
+        if (WiFi.SSID(thisNet).compareTo(SSID_to_search) == 0) {
 #ifdef DEBUG_JKW_WIFI
-        Serial.print("found ");
+          Serial.print("found ");
           Serial.println(SSID_to_search);
           delay(100);
 #endif
@@ -40,37 +41,18 @@ class FindSSID
       }
       // perform the scan#
 #ifdef DEBUG_JKW_WIFI
-      //Serial.println("EOS!!!!");
+      if (!found) {
+        Serial.println("WiFi SSID not found.");
+      }
 #endif
       return found;
     }
 };
 
 bool set_wifi_login() {
-  //  ... ok ... complicated
-  //
-  //  if we have a blank device this will happen:
-  //  1. Both LEDs will toggle for 10sec (saving WiFi credentials (not applicable here) or waiting for input)
-  //
-  //  if we have a config that is OUT of reach:
-  //  1. (MACS=Both LEDs)/(UPDATE1=green LED)/(UPDATE2=red LED) will flash 3x (MACS=simultaneously) to show that the config has been read
-  //  2. Green off, red on will show the start of the WiFi scanning
-  //  3. per WiFi that has been found the green and red will toggle, just to show activity
-  //  4. Both LEDs are switched off
-  //  5. Both LEDs will toggle for 10sec (saving WiFi credentials (not applicable here) or waiting for input) 20Hz
-  //
-  //  if we have a config that is IN reach:
-  //  1. (MACS=Both LEDs)/(UPDATE1=green LED)/(UPDATE2=red LED) will flash 3x (MACS=simultaneously) to show that the config has been read
-  //  2. Green off, red on will show the start of the WiFi scanning
-  //  3. per WiFi that has been found the green and red will toggle, just to show activity
-  //  4. Both LEDs are switched off
-  //  5. (MACS=Both LEDs)/(UPDATE1=green LED)/(UPDATE2=red LED) will toggle 5x (WiFi found) 10Hz
-  //  6. Both LEDs will toggle for 10sec or until WiFi data are saved (saving WiFi credentials or waiting for input) 20Hz
-  //  7. (MACS=Both LEDs)/(UPDATE1=green LED)/(UPDATE2=red LED) will toggle 2x (WiFi connected) 10Hz
-  //
 
-  char* SSID;
-  char* pw;
+  String SSID;
+  String pw;
   bool try_backup = true;
   uint8_t wifi_offset;
   uint8_t max_loop;
@@ -79,43 +61,63 @@ bool set_wifi_login() {
   //EEPROM.begin(512);
 
   WiFi.disconnect();
-    if (get_wifi_config(wifi_offset, SSID, pw)) {
-      Serial.println("SSID found in EEPROM");
-      delay(1000);
+  if (get_wifi_config(wifi_offset, &SSID, &pw)) {
+    Serial.println("SSID found in EEPROM");
+    Serial.println(SSID);
+    delay(1000);
 
-      if (ssidFinder.check_SSID_in_range(SSID)) {
-        Serial.println("Wifi Found");
-      };
-      delay(1000);
+    if (ssidFinder.check_SSID_in_range(SSID)) {
+      Serial.println("Wifi Found");
     };
-  for (int i = 0; i < 200 && (WiFi.SSID().length() == 0); i++) {
+    delay(1000);
+  };
+  /*for (int i = 0; i < 200 && (WiFi.SSID().length() == 0); i++) {
     // take new info
     parse_wifi();
     // set info
     delay(50);
-    }
+    }*/
 
   if (SSID != "") {
     // set IP
-      IPAddress myAddress(192, 168, 188, 100 + get_my_id());
-      IPAddress netmask(255, 255, 255, 0);
-      IPAddress gateway(192, 168, 188, 254);
-      IPAddress dns(192, 168, 188, 254);
-      WiFi.config(myAddress, dns, gateway, netmask);
+    IPAddress myAddress(192, 168, 188, 100 + get_my_id());
+    IPAddress netmask(255, 255, 255, 0);
+    IPAddress gateway(192, 168, 188, 254);
+    IPAddress dns(192, 168, 188, 254);
+    WiFi.config(myAddress, dns, gateway, netmask);
 
     // finally connect
-    if(pw != ""){
-    WiFi.begin(SSID, pw);
+    if (pw != "") {
+      WiFi.begin(SSID.c_str(), pw.c_str());
     }
-    else{
+    else {
       //Open Network
-      WiFi.begin(SSID);
+      WiFi.begin(SSID.c_str());
     }
     int i = 0;
-    while (i < 200 && WiFi.status() != WL_CONNECTED) {
+
+#ifdef DEBUG_JKW_WIFI
+    Serial.print("Try to connect...");
+#endif
+
+    /*while (i < 200 && WiFi.status() != WL_CONNECTED) {
       delay(50); // wait 59
       i++;
+      }*/
+
+    while (WiFi.status() == WL_IDLE_STATUS) {
+#ifdef DEBUG_JKW_WIFI
+      Serial.print(".");
+#endif
     }
+#ifdef DEBUG_JKW_WIFI
+    if (is_wifi_connected()) {
+      Serial.println("\nWiFi connected!");
+    }
+    else {
+      Serial.println("\nConnection failed.");
+    }
+#endif
 
     return true;
   }
@@ -128,12 +130,12 @@ bool is_wifi_connected() {
 
 
 // read data from EEPROM, check them and set them if the check is passed
-bool get_wifi_config(uint8_t id, char *_SSID, char *_pw) {
+bool get_wifi_config(uint8_t id, String *SSID, String *pw) {
   Serial.println("get wifi config!!");
   uint16_t data_start = START_WIFI_MACS;
 
-  uint8_t SSID[21];
-  uint8_t pw[22];
+  char SSID_char[21];
+  char pw_char[22];
   uint8_t chk = 0x00;
   uint8_t read_char = 0x00;
   uint8_t p = 0x00;
@@ -143,7 +145,7 @@ bool get_wifi_config(uint8_t id, char *_SSID, char *_pw) {
   read_char = 0x01; // avoid instand stop
   for (uint8_t i = 0; i < 20 && read_char != 0x00; i++) {
     read_char = EEPROM.read(data_start + i);
-    SSID[i] = read_char;
+    SSID_char[i] = read_char;
     p = i;
 
     if (read_char != 0xFF) {
@@ -151,16 +153,16 @@ bool get_wifi_config(uint8_t id, char *_SSID, char *_pw) {
     }
   }
 
-  SSID[p + 1] = 0x00;
+  SSID_char[p + 1] = '\0';
 
   // read pw
   read_char = 0x01; // avoid instand stop
   for (uint8_t i = 0; i < 21 && read_char != 0x00; i++) {
     read_char = EEPROM.read(data_start + i + 20);
-    pw[i] = read_char;
+    pw_char[i] = read_char;
     p = i;
   }
-  pw[p + 1] = 0x00;
+  pw_char[p + 1] = '\0';
 
   chk = EEPROM.read(data_start + 41);
 
@@ -197,7 +199,7 @@ bool get_wifi_config(uint8_t id, char *_SSID, char *_pw) {
       type = 2; // WPA
       chk = 0x0E;
     }
-  }*/
+    }*/
 
   //#ifdef DEBUG_JKW_WIFI
   //Serial.println("set wifi, data:");
@@ -220,31 +222,30 @@ bool get_wifi_config(uint8_t id, char *_SSID, char *_pw) {
   //#endif
   Serial.println("set wifi, data:");
   Serial.print("SSID:");
-  Serial.print((const char*)SSID);
+  Serial.print(SSID_char);
   Serial.println(".");
   delay(1000);
   Serial.print("PW:");
-  Serial.print((const char*)pw);
+  Serial.print(pw_char);
   Serial.println(".");
   delay(1000);
   Serial.print("chk:");
   Serial.print(chk);
   Serial.println(".");
   delay(1000);
-  if (!check_wifi_config((const char*)SSID, (const char*)pw, chk)) {
+  if (!check_wifi_config(SSID_char, pw_char, chk)) {
 
-    //#ifdef DEBUG_JKW_WIFI
-    //Serial.println("set wifi, data invalid");
-    //#endif
+#ifdef DEBUG_JKW_WIFI
     Serial.println("set wifi, data invalid");
-    _SSID = "";
-    _pw = "";
+#endif
+    *SSID = "";
+    *pw = "";
 
     return false;
   }
 
-  _SSID = (char*)SSID;
-  _pw = (char*)pw;
+  *SSID = String(SSID_char);
+  *pw = String(pw_char);
 
   return true;
 }
@@ -329,7 +330,7 @@ bool save_wifi_config(uint8_t id, String SSID, String pw, uint8_t chk) {
   // checksum
   EEPROM.write(data_start + 41, chk);
   EEPROM.commit();
-  
+
   Serial.println("done!!");
   return true;
 }
